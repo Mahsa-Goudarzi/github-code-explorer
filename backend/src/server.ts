@@ -1,6 +1,7 @@
 import express from "express";
 
 const app = express();
+app.use(express.json());
 
 const PORT = process.env.SERVER_PORT || 3001;
 
@@ -23,6 +24,24 @@ app.get("/api/hello", (req, res) => {
 
   res.json({
     message: `Hello, ${name}!`,
+  });
+});
+
+// Define a POST endpoint to receive a repository URL
+app.post("/api/analyze", (req, res) => {
+  const { repoUrl } = req.body;
+
+  if (typeof repoUrl !== "string" || repoUrl.trim() === "") {
+    res.status(400).json({
+      error: "Repository URL is required",
+    });
+
+    return;
+  }
+
+  res.json({
+    message: "Repository received!",
+    repoUrl,
   });
 });
 
