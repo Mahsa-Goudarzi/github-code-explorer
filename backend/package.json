@@ -4,10 +4,10 @@
   "description": "A tool to explore GitHub repositories with an LLM",
   "license": "MIT",
   "author": "Mahsa Goudarzi",
-  "type": "commonjs",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx src/server.ts"
   },
   "dependencies": {
     "express": "^5.2.1"
