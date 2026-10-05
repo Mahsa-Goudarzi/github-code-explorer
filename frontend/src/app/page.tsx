@@ -7,6 +7,8 @@ export default function Home(): JSX.Element {
   const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
+  const buttonDisabled = loading || !repoUrl.trim();
+
   async function analyzeRepository() {
     setLoading(true);
     setMessage("");
@@ -64,8 +66,8 @@ export default function Home(): JSX.Element {
 
           <button
             onClick={analyzeRepository}
-            disabled={loading || !repoUrl.trim()}
-            className="rounded-lg bg-black px-5 py-3 text-white disabled:opacity-50"
+            disabled={buttonDisabled}
+            className={`rounded-lg bg-black px-5 py-3 text-white disabled:opacity-50 ${buttonDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}
           >
             {loading ? "Analyzing..." : "Analyze repository"}
           </button>
