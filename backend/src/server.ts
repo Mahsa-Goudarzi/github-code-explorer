@@ -36,7 +36,7 @@ app.get("/api/hello", (req, res) => {
 });
 
 // Define a POST endpoint to receive a repository URL
-app.post("/api/analyze", (req, res) => {
+app.post("/api/analyze", async (req, res) => {
   const { repoUrl } = req.body;
 
   if (typeof repoUrl !== "string" || repoUrl.trim() === "") {
@@ -47,10 +47,72 @@ app.post("/api/analyze", (req, res) => {
     return;
   }
 
-  res.json({
-    message: "Repository received!",
-    repoUrl,
-  });
+  try {
+    const url = new URL(repoUrl);
+
+    if (url.hostname !== "github.com") {
+      res.status(400).json({
+        error: "Only GitHub repository URLs are supported",
+      });
+
+      return;
+    }
+
+    const parts = url.pathname.split("/").filter(Boolean);
+
+    if (parts.length < 2) {
+      res.status(400).json({
+        error: "Invalid GitHub repository URL",
+      });
+
+      return;
+    }
+
+    const [owner, repo] = parts;
+
+    const response = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}`,
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        res.status(404).json({
+          error: "Repository not found",
+        });
+
+        return;
+      }
+
+      res.status(response.status).json({
+        error: "Failed to fetch repository from GitHub",
+      });
+
+      return;
+    }
+
+    const repository = await response.json();
+
+    res.json({
+      name: repository.name,
+      fullName: repository.full_name,
+      description: repository.description,
+      language: repository.language,
+      stars: repository.stargazers_count,
+      url: repository.html_url,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      error: "Something went wrong while analyzing the repository",
+    });
+  }
 });
 
 // Start the server on the specified port
