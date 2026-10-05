@@ -1,9 +1,17 @@
 import express from "express";
-
-const app = express();
-app.use(express.json());
+import cors from "cors";
 
 const PORT = process.env.SERVER_PORT || 3001;
+
+const app = express();
+
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  }),
+);
+
+app.use(express.json());
 
 // Define a simple health check GET request
 app.get("/api/health", (req, res) => {
