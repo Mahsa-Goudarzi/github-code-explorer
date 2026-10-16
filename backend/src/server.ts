@@ -1,5 +1,12 @@
+// Node.js server setup for the backend API
 import express from "express";
 import cors from "cors";
+
+// utility functions to fetch repository files from GitHub
+import { getRepositoryFiles, filterCodeFiles } from "./utils/github.js";
+
+// constants
+import { MAX_FILES_PER_REQUEST } from "./const/const.js";
 
 const PORT = process.env.SERVER_PORT || 3001;
 
@@ -60,7 +67,7 @@ app.post("/api/analyze", async (req, res) => {
 
     const parts = url.pathname.split("/").filter(Boolean);
 
-    if (parts.length < 2) {
+    if (parts.length < 2 || !parts[0] || !parts[1]) {
       res.status(400).json({
         error: "Invalid GitHub repository URL",
       });
@@ -98,6 +105,10 @@ app.post("/api/analyze", async (req, res) => {
 
     const repository = await response.json();
 
+    const allFiles = await getRepositoryFiles(owner, repo);
+
+    const files = filterCodeFiles(allFiles).slice(0, MAX_FILES_PER_REQUEST);
+
     res.json({
       name: repository.name,
       fullName: repository.full_name,
@@ -105,6 +116,7 @@ app.post("/api/analyze", async (req, res) => {
       language: repository.language,
       stars: repository.stargazers_count,
       url: repository.html_url,
+      files,
     });
   } catch (error) {
     console.error(error);
