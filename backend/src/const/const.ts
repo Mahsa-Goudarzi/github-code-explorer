@@ -1,5 +1,7 @@
 export const MAX_FILES_PER_REQUEST = 100;
 
+export const MAX_FILE_SIZE = 100_000;
+
 export const CODE_EXTENSIONS = [
   ".ts",
   ".tsx",
@@ -25,6 +27,13 @@ export const IGNORED_PATHS = [
   "dist/",
   "build/",
   ".next/",
+];
+
+export const IGNORED_FILES = [
+  "package-lock.json",
+  "yarn.lock",
+  "pnpm-lock.yaml",
+  "bun.lockb",
 ];
 
 export const DEFAULT_CHUNK_OPTIONS = {

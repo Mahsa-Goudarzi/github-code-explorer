@@ -4,9 +4,8 @@ import cors from "cors";
 
 // utility functions to fetch repository files from GitHub
 import {
-  getRepositoryFiles,
-  filterCodeFiles,
-  getFileContent,
+  getRepositoryArchive,
+  getCodeFilesFromArchive,
 } from "./utils/github.js";
 
 // rag utility function to chunk code files
@@ -84,43 +83,20 @@ app.post("/api/analyze", async (req, res) => {
 
     const [owner, repo] = parts;
 
-    const response = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}`,
-      {
-        headers: {
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-        },
-      },
+    // 1. Download repository archive
+    const archive = await getRepositoryArchive(owner, repo);
+
+    // 2. Select useful code files
+    const files = getCodeFilesFromArchive(archive).slice(
+      0,
+      MAX_FILES_PER_REQUEST,
     );
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        res.status(404).json({
-          error: "Repository not found",
-        });
-
-        return;
-      }
-
-      res.status(response.status).json({
-        error: "Failed to fetch repository from GitHub",
-      });
-
-      return;
-    }
-
-    const repository = await response.json();
-
-    const allFiles = await getRepositoryFiles(owner, repo);
-
-    const files = filterCodeFiles(allFiles).slice(0, MAX_FILES_PER_REQUEST);
-
+    // 3. Turn files into chunks
     const allChunks = [];
 
     for (const file of files) {
-      const content = await getFileContent(owner, repo, file.path);
+      const content = file.entry.getData().toString("utf8");
 
       const chunks = chunkCode(file.path, content);
 
@@ -128,12 +104,8 @@ app.post("/api/analyze", async (req, res) => {
     }
 
     res.json({
-      name: repository.name,
-      fullName: repository.full_name,
-      description: repository.description,
-      language: repository.language,
-      stars: repository.stargazers_count,
-      url: repository.html_url,
+      owner,
+      repo,
       files: files.length,
       chunks: allChunks,
     });

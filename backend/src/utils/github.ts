@@ -1,78 +1,76 @@
+// zip files handling
+import AdmZip from "adm-zip";
+
 // constants
-import { CODE_EXTENSIONS, IGNORED_PATHS } from "../const/const.js";
+import {
+  CODE_EXTENSIONS,
+  IGNORED_FILES,
+  IGNORED_PATHS,
+  MAX_FILE_SIZE,
+} from "../const/const.js";
 
 // types
-import type {
-  GitHubFileResponseType,
-  GitHubTreeItemType,
-  GitHubTreeResponseType,
-} from "../types/types.js";
+import type { CodeFileType } from "../types/types.js";
 
-export async function getRepositoryFiles(
+function normalizeArchivePath(path: string): string {
+  const parts = path.split("/");
+
+  // Remove the first directory, which is the repository name + commit hash.
+  return parts.slice(1).join("/");
+}
+
+export async function getRepositoryArchive(
   owner: string,
   repo: string,
-): Promise<GitHubTreeItemType[]> {
+): Promise<AdmZip> {
   const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`,
+    `https://api.github.com/repos/${owner}/${repo}/zipball/HEAD`,
     {
       headers: {
         Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
         Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+        "X-GitHub-Api-Version": "2026-03-10",
       },
     },
   );
 
   if (!response.ok) {
-    throw new Error(`GitHub API error: ${response.status}`);
+    throw new Error(`GitHub archive error: ${response.status}`);
   }
 
-  const data = (await response.json()) as GitHubTreeResponseType;
+  const buffer = Buffer.from(await response.arrayBuffer());
 
-  return data.tree;
+  return new AdmZip(buffer);
 }
 
-export function filterCodeFiles(
-  files: GitHubTreeItemType[],
-): GitHubTreeItemType[] {
-  return files.filter((file) => {
-    if (file.type !== "blob") {
-      return false;
-    }
+export function getCodeFilesFromArchive(zip: AdmZip): CodeFileType[] {
+  const entries = zip.getEntries();
 
-    if (IGNORED_PATHS.some((path) => file.path.startsWith(path))) {
-      return false;
-    }
+  return entries
+    .filter((entry) => {
+      if (entry.isDirectory) {
+        return false;
+      }
 
-    return CODE_EXTENSIONS.some((extension) => file.path.endsWith(extension));
-  });
-}
+      const path = normalizeArchivePath(entry.entryName);
+      const fileName = path.split("/").pop() ?? "";
 
-export async function getFileContent(
-  owner: string,
-  repo: string,
-  path: string,
-): Promise<string> {
-  const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
-    {
-      headers: {
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-      },
-    },
-  );
+      if (IGNORED_PATHS.some((ignoredPath) => path.includes(ignoredPath))) {
+        return false;
+      }
 
-  if (!response.ok) {
-    throw new Error(`GitHub API error: ${response.status}`);
-  }
+      if (IGNORED_FILES.includes(fileName)) {
+        return false;
+      }
 
-  const data = (await response.json()) as GitHubFileResponseType;
+      if (entry.header.size > MAX_FILE_SIZE) {
+        return false;
+      }
 
-  if (data.encoding !== "base64") {
-    throw new Error("Unexpected file encoding");
-  }
-
-  return Buffer.from(data.content, "base64").toString("utf-8");
+      return CODE_EXTENSIONS.some((extension) => path.endsWith(extension));
+    })
+    .map((entry) => ({
+      entry,
+      path: normalizeArchivePath(entry.entryName),
+    }));
 }
