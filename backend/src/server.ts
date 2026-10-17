@@ -90,6 +90,7 @@ app.post("/api/analyze", async (req, res) => {
         headers: {
           Accept: "application/vnd.github+json",
           "X-GitHub-Api-Version": "2022-11-28",
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
         },
       },
     );
