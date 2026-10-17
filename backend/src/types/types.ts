@@ -10,3 +10,10 @@ export type GitHubTreeResponseType = {
   tree: GitHubTreeItemType[];
   truncated: boolean;
 };
+
+export type GitHubFileResponseType = {
+  content: string;
+  encoding: string;
+  size: number;
+  path: string;
+};
