@@ -17,3 +17,16 @@ export type GitHubFileResponseType = {
   size: number;
   path: string;
 };
+
+export type ChunkOptionsType = {
+  maxLines?: number;
+  overlapLines?: number;
+};
+
+export type CodeChunkType = {
+  id: string;
+  filePath: string;
+  content: string;
+  startLine: number;
+  endLine: number;
+};

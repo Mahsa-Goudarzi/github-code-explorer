@@ -26,3 +26,8 @@ export const IGNORED_PATHS = [
   "build/",
   ".next/",
 ];
+
+export const DEFAULT_CHUNK_OPTIONS = {
+  maxLines: 50,
+  overlapLines: 10,
+};

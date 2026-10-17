@@ -3,7 +3,14 @@ import express from "express";
 import cors from "cors";
 
 // utility functions to fetch repository files from GitHub
-import { getRepositoryFiles, filterCodeFiles } from "./utils/github.js";
+import {
+  getRepositoryFiles,
+  filterCodeFiles,
+  getFileContent,
+} from "./utils/github.js";
+
+// rag utility function to chunk code files
+import { chunkCode } from "./utils/rag.js";
 
 // constants
 import { MAX_FILES_PER_REQUEST } from "./const/const.js";
@@ -109,6 +116,16 @@ app.post("/api/analyze", async (req, res) => {
 
     const files = filterCodeFiles(allFiles).slice(0, MAX_FILES_PER_REQUEST);
 
+    const allChunks = [];
+
+    for (const file of files) {
+      const content = await getFileContent(owner, repo, file.path);
+
+      const chunks = chunkCode(file.path, content);
+
+      allChunks.push(...chunks);
+    }
+
     res.json({
       name: repository.name,
       fullName: repository.full_name,
@@ -116,7 +133,8 @@ app.post("/api/analyze", async (req, res) => {
       language: repository.language,
       stars: repository.stargazers_count,
       url: repository.html_url,
-      files,
+      files: files.length,
+      chunks: allChunks,
     });
   } catch (error) {
     console.error(error);
