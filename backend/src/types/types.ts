@@ -32,3 +32,23 @@ export type RetrievedChunkType = {
   startLine: number;
   endLine: number;
 };
+
+export type RepositoryDataType = {
+  chunks: EmbeddedChunkType[];
+  indexedAt: number;
+};
+
+export type AskRequestType = {
+  owner: string;
+  repo: string;
+  question: string;
+};
+
+export type AskResponseType = {
+  answer: string;
+  sources: {
+    filePath: string;
+    startLine: number;
+    endLine: number;
+  }[];
+};

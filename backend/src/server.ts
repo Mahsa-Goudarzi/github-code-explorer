@@ -22,7 +22,14 @@ import { createEmbedding, createEmbeddings } from "./utils/gemini.js";
 import { MAX_FILES_PER_REQUEST } from "./const/const.js";
 
 // types
-import type { CodeChunkType, EmbeddedChunkType } from "./types/types.js";
+import type {
+  CodeChunkType,
+  EmbeddedChunkType,
+  AskRequestType,
+} from "./types/types.js";
+
+// store
+import { saveRepository, getRepository } from "./store/repositoryStore.js";
 
 const PORT = process.env.SERVER_PORT || 3001;
 
@@ -125,11 +132,16 @@ app.post("/api/analyze", async (req, res) => {
       }),
     );
 
+    // 5. Save the repository embedded data in memory
+    const repoId = `${owner}/${repo}`;
+
+    saveRepository(repoId, embeddedChunks);
+
     res.json({
       owner,
       repo,
       files: files.length,
-      chunks: allChunks,
+      chunks: embeddedChunks.length,
     });
   } catch (error) {
     console.error(error);
@@ -138,6 +150,40 @@ app.post("/api/analyze", async (req, res) => {
       error: "Something went wrong while analyzing the repository",
     });
   }
+});
+
+app.post("/api/ask", (req, res) => {
+  const { owner, repo, question } = req.body as AskRequestType;
+
+  if (
+    typeof owner !== "string" ||
+    typeof repo !== "string" ||
+    typeof question !== "string" ||
+    !owner.trim() ||
+    !repo.trim() ||
+    !question.trim()
+  ) {
+    res.status(400).json({
+      error: "owner, repo, and question are required.",
+    });
+    return;
+  }
+
+  const repoId = `${owner.trim()}/${repo.trim()}`;
+  const repository = getRepository(repoId);
+
+  if (!repository) {
+    res.status(404).json({
+      error: "Repository has not been indexed in this session.",
+    });
+    return;
+  }
+
+  res.json({
+    message: "Repository found.",
+    indexedAt: repository.indexedAt,
+    chunkCount: repository.chunks.length,
+  });
 });
 
 // Start the server on the specified port
