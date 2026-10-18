@@ -2,6 +2,8 @@ export const MAX_FILES_PER_REQUEST = 100;
 
 export const MAX_FILE_SIZE = 100_000;
 
+export const EMBEDDING_BATCH_SIZE = 50;
+
 export const CODE_EXTENSIONS = [
   ".ts",
   ".tsx",

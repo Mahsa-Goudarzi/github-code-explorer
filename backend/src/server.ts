@@ -9,10 +9,20 @@ import {
 } from "./utils/github.js";
 
 // rag utility function to chunk code files
-import { chunkCode } from "./utils/rag.js";
+import {
+  chunkCode,
+  cosineSimilarity,
+  retrieveRelevantChunks,
+} from "./utils/rag.js";
+
+// emdedding utility function to create embeddings for code chunks
+import { createEmbedding, createEmbeddings } from "./utils/gemini.js";
 
 // constants
 import { MAX_FILES_PER_REQUEST } from "./const/const.js";
+
+// types
+import type { CodeChunkType, EmbeddedChunkType } from "./types/types.js";
 
 const PORT = process.env.SERVER_PORT || 3001;
 
@@ -93,7 +103,7 @@ app.post("/api/analyze", async (req, res) => {
     );
 
     // 3. Turn files into chunks
-    const allChunks = [];
+    const allChunks: CodeChunkType[] = [];
 
     for (const file of files) {
       const content = file.entry.getData().toString("utf8");
@@ -102,6 +112,37 @@ app.post("/api/analyze", async (req, res) => {
 
       allChunks.push(...chunks);
     }
+
+    // 4. Create embeddings for all chunks
+    const texts: string[] = allChunks.map((chunk) => chunk.content);
+
+    const embeddings: number[][] = await createEmbeddings(texts);
+
+    const embeddedChunks: EmbeddedChunkType[] = allChunks.map(
+      (chunk, index) => ({
+        ...chunk,
+        embedding: embeddings[index] || [],
+      }),
+    );
+
+    const testQuestion = "Where is state management handled in this project?";
+
+    const questionEmbedding = await createEmbedding(testQuestion);
+
+    // Find the most relevant chunks for the test question
+    const relevantChunks = retrieveRelevantChunks(
+      questionEmbedding,
+      embeddedChunks,
+      5,
+    );
+
+    console.log(
+      relevantChunks.map((chunk) => ({
+        file: chunk.filePath,
+        lines: `${chunk.startLine}-${chunk.endLine}`,
+        score: chunk.score,
+      })),
+    );
 
     res.json({
       owner,
