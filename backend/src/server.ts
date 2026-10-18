@@ -18,6 +18,9 @@ import {
 // emdedding utility function to create embeddings for code chunks
 import { createEmbedding, createEmbeddings } from "./utils/gemini.js";
 
+// answer utility function to answer questions based on code chunks
+import { answerQuestion } from "./utils/answer.js";
+
 // constants
 import { MAX_FILES_PER_REQUEST } from "./const/const.js";
 
@@ -152,7 +155,7 @@ app.post("/api/analyze", async (req, res) => {
   }
 });
 
-app.post("/api/ask", (req, res) => {
+app.post("/api/ask", async (req, res) => {
   const { owner, repo, question } = req.body as AskRequestType;
 
   if (
@@ -179,11 +182,32 @@ app.post("/api/ask", (req, res) => {
     return;
   }
 
-  res.json({
-    message: "Repository found.",
-    indexedAt: repository.indexedAt,
-    chunkCount: repository.chunks.length,
-  });
+  try {
+    const questionEmbedding = await createEmbedding(question.trim());
+
+    const relevantChunks = retrieveRelevantChunks(
+      questionEmbedding,
+      repository.chunks,
+      5,
+    );
+
+    const answer = await answerQuestion(question.trim(), relevantChunks);
+
+    res.json({
+      answer,
+      sources: relevantChunks.map((chunk) => ({
+        filePath: chunk.filePath,
+        startLine: chunk.startLine,
+        endLine: chunk.endLine,
+      })),
+    });
+  } catch (error) {
+    console.error("Error answering question:", error);
+
+    res.status(500).json({
+      error: "Failed to answer the question.",
+    });
+  }
 });
 
 // Start the server on the specified port
