@@ -25,3 +25,10 @@ export type EmbeddedChunkType = CodeChunkType & {
 export type RelevantChunkType = EmbeddedChunkType & {
   score: number;
 };
+
+export type RetrievedChunkType = {
+  filePath: string;
+  content: string;
+  startLine: number;
+  endLine: number;
+};

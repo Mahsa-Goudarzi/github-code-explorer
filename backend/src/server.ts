@@ -125,25 +125,6 @@ app.post("/api/analyze", async (req, res) => {
       }),
     );
 
-    const testQuestion = "Where is state management handled in this project?";
-
-    const questionEmbedding = await createEmbedding(testQuestion);
-
-    // Find the most relevant chunks for the test question
-    const relevantChunks = retrieveRelevantChunks(
-      questionEmbedding,
-      embeddedChunks,
-      5,
-    );
-
-    console.log(
-      relevantChunks.map((chunk) => ({
-        file: chunk.filePath,
-        lines: `${chunk.startLine}-${chunk.endLine}`,
-        score: chunk.score,
-      })),
-    );
-
     res.json({
       owner,
       repo,
