@@ -15,7 +15,7 @@ export default function Home(): JSX.Element {
 
     try {
       const response = await fetch(
-        `http://localhost:${process.env.NEXT_PUBLIC_SERVER_PORT}/api/analyze`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/analyze`,
         {
           method: "POST",
           headers: {
