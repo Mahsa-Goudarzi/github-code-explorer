@@ -17,3 +17,11 @@ export type CodeFileType = {
   entry: AdmZip.IZipEntry;
   path: string;
 };
+
+export type EmbeddedChunkType = CodeChunkType & {
+  embedding: number[];
+};
+
+export type RelevantChunkType = EmbeddedChunkType & {
+  score: number;
+};

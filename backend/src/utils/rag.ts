@@ -1,5 +1,10 @@
 // types
-import type { ChunkOptionsType, CodeChunkType } from "../types/types.js";
+import type {
+  ChunkOptionsType,
+  CodeChunkType,
+  EmbeddedChunkType,
+  RelevantChunkType,
+} from "../types/types.js";
 
 // constants
 import { DEFAULT_CHUNK_OPTIONS } from "../const/const.js";
@@ -70,4 +75,47 @@ export function chunkCode(
   }
 
   return chunks;
+}
+
+export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error("Vectors must have the same dimensions");
+  }
+
+  if (a.length === 0 || b.length === 0) {
+    throw new Error("Vectors must not be empty");
+  }
+
+  let dotProduct = 0;
+  let magnitudeA = 0;
+  let magnitudeB = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    const valueA = a[i] ?? 0;
+    const valueB = b[i] ?? 0;
+
+    dotProduct += valueA * valueB;
+    magnitudeA += valueA ** 2;
+    magnitudeB += valueB ** 2;
+  }
+
+  if (magnitudeA === 0 || magnitudeB === 0) {
+    return 0;
+  }
+
+  return dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB));
+}
+
+export function retrieveRelevantChunks(
+  questionEmbedding: number[],
+  chunks: EmbeddedChunkType[],
+  topK = 5,
+): RelevantChunkType[] {
+  return chunks
+    .map((chunk) => ({
+      ...chunk,
+      score: cosineSimilarity(questionEmbedding, chunk.embedding),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK);
 }
