@@ -51,23 +51,6 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// Define a simple endpoint with a query parameter
-app.get("/api/hello", (req, res) => {
-  const name = req.query.name;
-
-  if (typeof name !== "string" || name.trim() === "") {
-    res.status(400).json({
-      error: "Name is required",
-    });
-
-    return;
-  }
-
-  res.json({
-    message: `Hello, ${name}!`,
-  });
-});
-
 // Define a POST endpoint to receive a repository URL
 app.post("/api/analyze", async (req, res) => {
   const { repoUrl } = req.body;
@@ -128,12 +111,24 @@ app.post("/api/analyze", async (req, res) => {
 
     const embeddings: number[][] = await createEmbeddings(texts);
 
-    const embeddedChunks: EmbeddedChunkType[] = allChunks.map(
-      (chunk, index) => ({
+    if (embeddings.length !== allChunks.length) {
+      throw new Error(
+        `Embedding count mismatch: ${allChunks.length} chunks, ${embeddings.length} embeddings`,
+      );
+    }
+
+    const embeddedChunks = allChunks.map((chunk, index) => {
+      const embedding = embeddings[index];
+
+      if (!embedding || embedding.length === 0) {
+        throw new Error(`Missing embedding for chunk: ${chunk.id}`);
+      }
+
+      return {
         ...chunk,
-        embedding: embeddings[index] || [],
-      }),
-    );
+        embedding,
+      };
+    });
 
     // 5. Save the repository embedded data in memory
     const repoId = `${owner}/${repo}`;

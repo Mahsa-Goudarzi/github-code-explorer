@@ -111,6 +111,24 @@ export function retrieveRelevantChunks(
   chunks: EmbeddedChunkType[],
   topK = 5,
 ): RelevantChunkType[] {
+  const invalidChunks = chunks.filter(
+    (chunk) => chunk.embedding.length !== questionEmbedding.length,
+  );
+
+  if (invalidChunks.length > 0) {
+    console.error(
+      "Invalid chunk embeddings:",
+      invalidChunks.map((chunk) => ({
+        id: chunk.id,
+        dimensions: chunk.embedding.length,
+      })),
+    );
+
+    throw new Error(
+      `Found ${invalidChunks.length} chunks with invalid embedding dimensions.`,
+    );
+  }
+
   return chunks
     .map((chunk) => ({
       ...chunk,

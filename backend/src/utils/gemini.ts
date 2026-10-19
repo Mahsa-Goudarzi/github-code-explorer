@@ -27,11 +27,22 @@ export async function createEmbeddings(texts: string[]): Promise<number[][]> {
 
     const response = await ai.models.embedContent({
       model: "gemini-embedding-2",
-      contents: batch,
+      contents: batch.map((text) => ({
+        parts: [{ text }],
+      })),
     });
 
     const embeddings =
       response.embeddings?.map((embedding) => embedding.values ?? []) ?? [];
+
+    if (
+      embeddings.length !== batch.length ||
+      embeddings.some((embedding) => embedding.length === 0)
+    ) {
+      throw new Error(
+        `Invalid embedding response: expected ${batch.length} non-empty embeddings, received ${embeddings.length}.`,
+      );
+    }
 
     allEmbeddings.push(...embeddings);
   }

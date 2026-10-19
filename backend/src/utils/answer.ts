@@ -21,7 +21,7 @@ export async function answerQuestion(
     .join("\n\n---\n\n");
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.8-flash",
     contents: `
         You are GitHub Code Explorer, an assistant that explains code repositories.
 
